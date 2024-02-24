@@ -1,11 +1,18 @@
 from fastapi import FastAPI, Response, Depends, HTTPException, status, Header
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-import random,time, secrets
+import random,time, secrets,os
 from sqlalchemy.orm import Session
 from typing import Annotated
 
 import models, schemas,crud
 from database import SessionLocal, engine
+
+from dotenv import load_dotenv
+load_dotenv()
+
+BASIC_AUTH_USER = os.getenv('BASIC_AUTH_USER')
+BASIC_AUTH_PWD = os.getenv('BASIC_AUTH_PWD')
+API_KEY = os.getenv('API_KEY')
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -23,12 +30,12 @@ def get_db():
 
 def check_auth(credentials):
     current_username_bytes = credentials.username.encode("utf8")
-    correct_username_bytes = b"usernametest"
+    correct_username_bytes = bytes(BASIC_AUTH_USER,'utf-8')
     is_correct_username = secrets.compare_digest(
         current_username_bytes, correct_username_bytes
     )
     current_password_bytes = credentials.password.encode("utf8")
-    correct_password_bytes = b"passwordtest"
+    correct_password_bytes = bytes(BASIC_AUTH_PWD,'utf-8')
     is_correct_password = secrets.compare_digest(
         current_password_bytes, correct_password_bytes
     )
@@ -46,7 +53,7 @@ def check_api_key(key):
             detail="Missing ApiKey"
         )
     else:
-        correct_api_key = b"blahblahblah"
+        correct_api_key = bytes(API_KEY,'utf-8')
         current_api_key = key.encode("utf8")
         is_correct_api_key = secrets.compare_digest(
             current_api_key, correct_api_key

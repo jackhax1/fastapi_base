@@ -1,10 +1,15 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
+DB_USER=os.getenv('DB_USER')
+DB_PWD=os.getenv('DB_PWD')
 
 #SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
-SQLALCHEMY_DATABASE_URL = "postgresql://username:password@localhost/mydatapgs"
+SQLALCHEMY_DATABASE_URL = f"postgresql://{DB_USER}:{DB_PWD}@localhost/mydatapgs"
 
 engine = create_engine(
     # SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}

@@ -1,6 +1,6 @@
-from fastapi import FastAPI, Response, Depends, HTTPException, status, Header
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-import random,time, secrets,os
+from fastapi import FastAPI, Response, Depends, HTTPException, status, Header, Security
+from fastapi.security import HTTPBasic, HTTPBasicCredentials, api_key
+import time, secrets,os
 from sqlalchemy.orm import Session
 from typing import Annotated
 
@@ -16,9 +16,8 @@ API_KEY = os.getenv('API_KEY')
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
-
 security = HTTPBasic()
+api_key_header = api_key.APIKeyHeader(name="X-API-KEY")
 
 # Dependency
 def get_db():
@@ -28,7 +27,7 @@ def get_db():
     finally:
         db.close()
 
-def check_auth(credentials):
+def check_auth(credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
     current_username_bytes = credentials.username.encode("utf8")
     correct_username_bytes = bytes(BASIC_AUTH_USER,'utf-8')
     is_correct_username = secrets.compare_digest(
@@ -46,39 +45,29 @@ def check_auth(credentials):
             headers={"WWW-Authenticate": "Basic"},
         )
 
-def check_api_key(key):
-    if key == None:
+def check_api_key(key: Annotated[str, Security(api_key_header)]):
+    correct_api_key = bytes(API_KEY,'utf-8')
+    current_api_key = key.encode("utf8")
+    is_correct_api_key = secrets.compare_digest(
+        current_api_key, correct_api_key
+    )
+    if not is_correct_api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing ApiKey"
+            detail="Invalid ApiKey"
         )
-    else:
-        correct_api_key = bytes(API_KEY,'utf-8')
-        current_api_key = key.encode("utf8")
-        is_correct_api_key = secrets.compare_digest(
-            current_api_key, correct_api_key
-        )
-        if not is_correct_api_key:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid ApiKey"
-            )
+    
+app = FastAPI(dependencies=[Depends(check_auth),Depends(check_api_key)])
 
 @app.get("/")
-async def root(credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-               apiKey: Annotated[str, Header()]=None):
-    check_auth(credentials)
-    check_api_key(apiKey)
+async def root():
+
     return {"message": "hello"}
 
 
 @app.post("/create_entity")
-async def create_entity(credentials: Annotated[HTTPBasicCredentials, Depends(security)], 
-                        entity:schemas.Entity,
-                        apiKey: Annotated[str, Header()]=None, 
+async def create_entity(entity:schemas.Entity,
                         db: Session = Depends(get_db)):
-    check_auth(credentials)
-    check_api_key(apiKey)
 
     d = crud.create_entity(db,entity)
     print(f"Creating entity: {d}")
@@ -86,23 +75,17 @@ async def create_entity(credentials: Annotated[HTTPBasicCredentials, Depends(sec
 
 
 @app.get("/get_entity")
-async def get_entities(credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-                       apiKey: Annotated[str, Header()]=None,
-                       db: Session = Depends(get_db)):
-    check_auth(credentials)
-    check_api_key(apiKey)
+async def get_entities(db: Session = Depends(get_db)):
+    
     items = crud.get_all_entity(db)
     return items
 
 
 @app.get("/get_entity/")
-async def get_entity(credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-                     entity_id :int,
+async def get_entity(entity_id :int,
                      limit: int = 10,
-                     apiKey: Annotated[str, Header()]=None,
                      db: Session = Depends(get_db)):
-    check_auth(credentials)
-    check_api_key(apiKey)
+    
     item = crud.get_entity(db,entity_id,limit)
     if item:
         result_dict = {
@@ -117,15 +100,9 @@ async def get_entity(credentials: Annotated[HTTPBasicCredentials, Depends(securi
         return Response("Entity ID not found",status_code=404)
 
 
-
-
 @app.post("/update_state")
-async def update_state(credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-                       state:schemas.State,
-                       apiKey: Annotated[str, Header()]=None,
+async def update_state(state:schemas.State,
                        db: Session = Depends(get_db)):
-    check_auth(credentials)
-    check_api_key(apiKey)
 
     loc_ts = int(time.time()*1000) if state.timestamp is None else state.timestamp
     d = crud.create_state(db,state,loc_ts)
@@ -136,12 +113,8 @@ async def update_state(credentials: Annotated[HTTPBasicCredentials, Depends(secu
 
 
 @app.get("/delete_entity/")
-async def delete_entity(credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-                        entity_id:int, 
-                        apiKey: Annotated[str, Header()]=None,
+async def delete_entity(entity_id:int,
                         db: Session = Depends(get_db)):
-    check_auth(credentials)
-    check_api_key(apiKey)
     d = crud.delete_entity(db,entity_id)
     if d:
         return Response(f"Successfully deleted {d} items",status_code = 200)

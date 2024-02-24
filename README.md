@@ -16,4 +16,6 @@ I would like to keep it simple for beginner as well as modular for pros to add i
 - [ ] Add comments
 - [ ] Create middleware for basic auth and apikey checking
 - [ ] User table in db
+- [ ] CI/CD pipeline with Actions
+- [ ] Robust json schema
 - [ ] ...(Please raise and issue if you suggestions)

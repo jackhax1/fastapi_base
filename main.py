@@ -1,19 +1,19 @@
 from fastapi import FastAPI, Response, Depends
 import time
 from sqlalchemy.orm import Session
-
 import models, schemas,crud
 from database import engine, get_db
 from security.auth import check_auth,check_api_key
+from security.ratelimit import lifespan, RATE_LIMIT_TIMES, RATE_LIMIT_SECS
+from fastapi_limiter.depends import RateLimiter
+
 
 models.Base.metadata.create_all(bind=engine)
 
+app = FastAPI(lifespan=lifespan, dependencies=[Depends(check_auth),Depends(check_api_key)])
 
 
-
-app = FastAPI(dependencies=[Depends(check_auth),Depends(check_api_key)])
-
-@app.get("/")
+@app.get("/", dependencies=[Depends(RateLimiter(times=RATE_LIMIT_TIMES, seconds=RATE_LIMIT_SECS))])
 async def root():
 
     return {"message": "hello"}
@@ -28,7 +28,7 @@ async def create_entity(entity:schemas.Entity,
     return {"message": d}
 
 
-@app.get("/get_entity")
+@app.get("/get_entity", dependencies=[Depends(RateLimiter(times=RATE_LIMIT_TIMES, seconds=RATE_LIMIT_SECS))])
 async def get_entities(db: Session = Depends(get_db)):
     
     items = crud.get_all_entity(db)
@@ -54,7 +54,7 @@ async def get_entity(entity_id :int,
         return Response("Entity ID not found",status_code=404)
 
 
-@app.post("/update_state")
+@app.post("/update_state", dependencies=[Depends(RateLimiter(times=RATE_LIMIT_TIMES, seconds=RATE_LIMIT_SECS))])
 async def update_state(state:schemas.State,
                        db: Session = Depends(get_db)):
 

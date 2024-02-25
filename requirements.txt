@@ -1,4 +1,6 @@
 fastapi==0.110.0
+fastapi_limiter==0.1.6
 pydantic==2.6.2
 python-dotenv==1.0.1
+redis==5.0.1
 SQLAlchemy==2.0.25

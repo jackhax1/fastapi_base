@@ -1,23 +1,14 @@
-from fastapi import FastAPI, Response, Depends, HTTPException, status, Header, Security
-from fastapi.security import HTTPBasic, HTTPBasicCredentials, api_key
-import time, secrets,os
+from fastapi import FastAPI, Response, Depends
+import time
 from sqlalchemy.orm import Session
-from typing import Annotated
 
 import models, schemas,crud
 from database import SessionLocal, engine
-
-from dotenv import load_dotenv
-load_dotenv()
-
-BASIC_AUTH_USER = os.getenv('BASIC_AUTH_USER')
-BASIC_AUTH_PWD = os.getenv('BASIC_AUTH_PWD')
-API_KEY = os.getenv('API_KEY')
+from security.auth import check_auth,check_api_key
 
 models.Base.metadata.create_all(bind=engine)
 
-security = HTTPBasic()
-api_key_header = api_key.APIKeyHeader(name="X-API-KEY")
+
 
 # Dependency
 def get_db():
@@ -27,36 +18,7 @@ def get_db():
     finally:
         db.close()
 
-def check_auth(credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
-    current_username_bytes = credentials.username.encode("utf8")
-    correct_username_bytes = bytes(BASIC_AUTH_USER,'utf-8')
-    is_correct_username = secrets.compare_digest(
-        current_username_bytes, correct_username_bytes
-    )
-    current_password_bytes = credentials.password.encode("utf8")
-    correct_password_bytes = bytes(BASIC_AUTH_PWD,'utf-8')
-    is_correct_password = secrets.compare_digest(
-        current_password_bytes, correct_password_bytes
-    )
-    if not (is_correct_username and is_correct_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Basic"},
-        )
 
-def check_api_key(key: Annotated[str, Security(api_key_header)]):
-    correct_api_key = bytes(API_KEY,'utf-8')
-    current_api_key = key.encode("utf8")
-    is_correct_api_key = secrets.compare_digest(
-        current_api_key, correct_api_key
-    )
-    if not is_correct_api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid ApiKey"
-        )
-    
 app = FastAPI(dependencies=[Depends(check_auth),Depends(check_api_key)])
 
 @app.get("/")
@@ -120,6 +82,3 @@ async def delete_entity(entity_id:int,
         return Response(f"Successfully deleted {d} items",status_code = 200)
     else:
         return Response("Entity ID not found",status_code=404)
-
-# if __name__ == "__main__":
-#     app.run(host='0.0.0.0', port='8000')

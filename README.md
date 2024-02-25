@@ -10,6 +10,7 @@ I would like to keep it simple for beginner as well as modular for pros to add i
 3. ApiKey checking
 4. Pydantic data models defined for parsing request body
 5. SQLalchemy based ORM that enables easy interfacing with a database (tested with PostgreSQL and MySQL)
+6. API rate limiting with Redis
 
 ### TO DO
 - [x] separate secrets into a different file
@@ -19,4 +20,5 @@ I would like to keep it simple for beginner as well as modular for pros to add i
 - [ ] CI/CD pipeline with Actions
 - [ ] Robust json schema
 - [x] Ratelimiting with Redis
+- [ ] AI model deployment
 - [ ] ...(Please raise and issue if you suggestions)

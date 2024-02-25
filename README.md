@@ -12,10 +12,11 @@ I would like to keep it simple for beginner as well as modular for pros to add i
 5. SQLalchemy based ORM that enables easy interfacing with a database (tested with PostgreSQL and MySQL)
 
 ### TO DO
-- [ ] separate secrets into a different file
+- [x] separate secrets into a different file
 - [ ] Add comments
-- [ ] Create middleware for basic auth and apikey checking
+- [x] Create middleware for basic auth and apikey checking
 - [ ] User table in db
 - [ ] CI/CD pipeline with Actions
 - [ ] Robust json schema
+- [x] Ratelimiting with Redis
 - [ ] ...(Please raise and issue if you suggestions)
